@@ -307,7 +307,9 @@ async function generateAiPost() {
   try {
     // 1. Updated to the exact model name from your list: gemini-3.1-flash-lite
     // Using v1beta as it supports the 3.1 series best
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${apiKey}`;
+    // Use the 1.5 Flash model which is usually the most stable for credit-free accounts
+const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+
     
     const response = await fetch(url, {
       method: 'POST',
