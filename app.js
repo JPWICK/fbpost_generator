@@ -227,42 +227,79 @@ function downloadPost(){
 }
 
 // This function creates an image WITHOUT using Gemini tokens
-function testOnlyImage() {
+// --- TEST FUNCTION: Call Gemini API directly for Image Generation ---
+async function testOnlyImage() {
   const btn = document.getElementById('testImgBtn');
-  btn.disabled = true;
-  btn.textContent = '🎨 Painting...';
-  setStatus('Fetching High-Res Buddhist Style Image...');
-
-  // Using Picsum - The most stable free image service in 2026
-  // We use a random ID and a 'grayscale' or 'blur' filter if you want, 
-  // but let's stick to high-quality random nature/spiritual style.
-  const randomId = Math.floor(Math.random() * 1000);
-  const imageUrl = `https://picsum.photos/id/${randomId}/1080/1080`;
-
-  const img = new Image();
   
-  // CRITICAL: Set crossOrigin BEFORE setting the src
-  img.crossOrigin = "anonymous"; 
-
-  img.onload = () => {
-    bgImage = img;
-    renderCanvas(); // This draws the image to your canvas
+  // 1. You MUST check for the API key, since we are using Gemini now
+  const apiKey = document.getElementById('ai_apikey').value.trim();
+  if (!apiKey) {
+    alert("Please enter your Gemini API Key first to try this feature!");
     btn.disabled = false;
-    btn.textContent = '🖼️ Try Background Generator (Free)';
-    setStatus('✅ Background Updated!');
-  };
+    return;
+  }
 
-  img.onerror = () => {
-    // If Picsum fails, we use a solid color so the app doesn't break
-    console.error("Image failed to load.");
-    setStatus('❌ Server Busy. Try clicking again.');
+  btn.disabled = true;
+  btn.textContent = '🖼️ Gemini is Painting...';
+  setStatus('Connecting to Gemini 3.1 Flash Image...');
+
+  try {
+    // 2. Updated stable multimodal URL for 2026 (Flash Image / Nano Banana)
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image:generateContent?key=${apiKey}`;
+
+    const promptText = "A professional, high-end photograph for a Buddhist post. Subject: A single lit oil lamp (Pana) on a dark stone floor with soft golden morning light. Cinematic bokeh, sharp focus, lots of empty negative space on the left for text. 8k resolution.";
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: promptText }] }],
+        generationConfig: {
+          // KEY SETTING: This tells Gemini to send back an actual IMAGE, not text.
+          responseModalities: ["IMAGE"], 
+          quality: "hd" // Request high detail
+        }
+      })
+    });
+
+    const data = await response.json();
+    console.log("Gemini Multimodal Response:", data);
+
+    if (!data.candidates || data.candidates.length === 0) {
+      throw new Error("No image generated. The prompt may have been blocked or key has no image quota.");
+    }
+
+    // 3. Handle the BASE64 image data Gemini sent back
+    const imageBase64 = data.candidates[0].content.parts[0].inlineData.data;
+
+    // 4. DRAW TO THE CANVAS
+    const img = new Image();
+    img.crossOrigin = "anonymous"; 
+
+    img.onload = () => {
+      bgImage = img;
+      renderCanvas(); // Redraw your canvas with the real Gemini image
+      btn.disabled = false;
+      btn.textContent = '🖼️ Try Background Generator (Gemini Key)';
+      setStatus('✅ Real Gemini Image Loaded!');
+    };
+
+    img.onerror = () => {
+      setStatus('❌ Image data received but could not be rendered.');
+      btn.disabled = false;
+    };
+
+    // Load the Gemini raw image data directly
+    img.src = `data:image/png;base64,${imageBase64}`;
+
+  } catch (error) {
+    console.error("Critical Gemini Image Error:", error);
+    setStatus('❌ Gemini Error: ' + error.message);
     btn.disabled = false;
-    btn.textContent = '🖼️ Try Background Generator (Free)';
-  };
-
-  // Setting the src starts the download
-  img.src = imageUrl;
+    btn.textContent = '🖼️ Try Background Generator (Gemini Key)';
+  }
 }
+
 
 
 renderCanvas();
