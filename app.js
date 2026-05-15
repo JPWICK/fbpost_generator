@@ -143,24 +143,22 @@ function renderNodateMode(){
 async function generateAiPost() {
   const apiKey = document.getElementById('ai_apikey').value.trim();
   const btn = document.getElementById('aiBtn');
-  if (!apiKey) { alert("Enter Gemini API Key"); return; }
+  if (!apiKey) { alert("Please enter your API key!"); return; }
 
   btn.disabled = true;
   btn.textContent = '🎨 Designing...';
-  setStatus('Gemini 3.1 Flash Lite is thinking...');
+  setStatus('Gemini 3.1 is thinking...');
 
   try {
-    // Exact model string from your AI Studio screenshot
+    // 1. GET TEXT FROM GEMINI 3.1 FLASH LITE
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${apiKey}`;
-
-    const promptText = `Generate a high-quality Buddhist post. 
-    1. QUOTE: A powerful short Buddhist quote in Sinhala.
-    2. IMAGE_PROMPT: English description of a serene scene (misty pagoda, oil lamp, or lotus). Use 'golden lighting' and 'bokeh background'.
-    3. COLOR: One matching Hex color for the title.
-    FORMAT: 
-    QUOTE: [text]
-    IMAGE_PROMPT: [text]
-    COLOR: [hex]`;
+    
+    // We ask Gemini to be a Graphic Designer and write the prompt for us
+    const promptText = `Generate a Buddhist post concept. 
+    1. QUOTE: A short Buddhist quote in Sinhala. 
+    2. IMAGE: A detailed English description of a serene scene (misty forest, stone lanterns, or lotus). 
+    3. COLOR: A Hex color matching the scene.
+    Format exactly: QUOTE: [text] IMAGE: [text] COLOR: [hex]`;
 
     const response = await fetch(url, {
       method: 'POST',
@@ -169,45 +167,54 @@ async function generateAiPost() {
     });
 
     const data = await response.json();
-    if (!data.candidates) throw new Error("API Limit reached or invalid key.");
-    
     const raw = data.candidates[0].content.parts[0].text;
-    
-    // Safer Parsing
-    const quote = raw.split("QUOTE:")[1].split("IMAGE_PROMPT:")[0].trim();
-    const imgDesc = raw.split("IMAGE_PROMPT:")[1].split("COLOR:")[0].trim();
+
+    // Parse the data
+    const quote = raw.split("QUOTE:")[1].split("IMAGE:")[0].trim();
+    const imgDesc = raw.split("IMAGE:")[1].split("COLOR:")[0].trim();
     const hex = raw.split("COLOR:")[1].trim();
 
+    // Update UI text
     document.getElementById('n_main').value = quote;
     document.getElementById('n_titlecol').value = hex;
     document.getElementById('n_titlecol_h').value = hex;
-
-    setStatus('Fetching AI Image...');
     switchMode('nodate');
 
-    // Pollinations with FLUX model
+    // 2. FETCH IMAGE FROM POLLINATIONS (Optimized)
+    setStatus('Painting background...');
+    
+    // We add a random seed and 'flux' model for high quality
     const seed = Math.floor(Math.random() * 999999);
-    const imageUrl = `https://pollinations.ai/p/${encodeURIComponent(imgDesc)}?width=1080&height=1080&seed=${seed}&model=flux&nologo=true`;
+    const imageUrl = `https://pollinations.ai/p/${encodeURIComponent(imgDesc + ", cinematic lighting, high resolution, serene") }?width=1080&height=1080&seed=${seed}&model=flux&nologo=true`;
 
     const img = new Image();
-    img.crossOrigin = "anonymous"; 
-    img.onload = () => {
-      bgImage = img;
-      renderCanvas();
-      btn.disabled = false;
-      btn.textContent = '✨ Auto-Generate Post';
-      setStatus('✅ Completed!');
-    };
-    img.onerror = () => { throw new Error("Image failed to load"); };
+    img.crossOrigin = "anonymous"; // CRITICAL: Must be lowercase
+
+    // This handles the "Stuck" issue
+    const imageLoad = new Promise((resolve, reject) => {
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("Image server busy. Try again."));
+      setTimeout(() => reject(new Error("Request timed out.")), 20000); // 20 sec timeout
+    });
+
     img.src = imageUrl;
+    
+    const loadedImg = await imageLoad;
+    bgImage = loadedImg;
+    renderCanvas();
+
+    btn.disabled = false;
+    btn.textContent = '✨ Auto-Generate Post';
+    setStatus('✅ Done!');
 
   } catch (error) {
-    console.error(error);
-    setStatus('❌ Error: ' + error.message);
+    console.error("Error details:", error);
+    setStatus('❌ ' + error.message);
     btn.disabled = false;
     btn.textContent = '✨ Auto-Generate Post';
   }
 }
+
 
 function setStatus(m){ document.getElementById('status').textContent = m; }
 
