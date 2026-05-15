@@ -296,59 +296,54 @@ async function generateAiPost() {
   const btn = document.getElementById('aiBtn');
   
   if (!apiKey) {
-    alert("Please enter your Gemini API key first!");
+    alert("Please enter your API key!");
     return;
   }
 
   btn.disabled = true;
-  btn.textContent = '⏳ Gemini is thinking...';
-  setStatus('Step 1: Writing text...');
+  btn.textContent = '⏳ Thinking...';
+  setStatus('Connecting to Google...');
 
   try {
-    // 1. Using the absolute simplest request structure for the v1 API
-    const textUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    // 1. Using a very simple URL structure
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     
-    const textRes = await fetch(textUrl, {
+    const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{
-          parts: [{
-            text: 'Write a short, beautiful Buddhist quote in Sinhala (max 4 lines). Also provide a short 2-word title, a subtext (e.g., source or blessing), and a short visual prompt in English describing a peaceful nature background. Format your answer exactly like this: TITLE: [title] QUOTE: [quote] SUBTEXT: [subtext] PROMPT: [prompt]'
-          }]
+          parts: [{ text: "Write a short Buddhist quote in Sinhala. Then on a new line write 'PROMPT:' followed by a simple English nature description for an image." }]
         }]
       })
     });
 
-    if (!textRes.ok) {
-      const err = await textRes.json();
-      throw new Error(err.error?.message || "API Error");
+    const data = await response.json();
+
+    // CHECK: Did we get a response?
+    if (!data.candidates || !data.candidates[0]) {
+      throw new Error("Google returned an empty response. Check your API key status.");
     }
-    
-    const textData = await textRes.json();
-    const resultText = textData.candidates[0].content.parts[0].text;
-    
-    // 2. Parse the plain text response manually (No JSON required from the API)
-    const title = resultText.match(/TITLE:\s*(.*)/)?.[1] || "බුදු වදන";
-    const quote = resultText.match(/QUOTE:\s*([\s\S]*?)(?=SUBTEXT:|$)/)?.[1]?.trim() || "";
-    const subtext = resultText.match(/SUBTEXT:\s*(.*)/)?.[1] || "";
-    const imagePrompt = resultText.match(/PROMPT:\s*(.*)/)?.[1] || "peaceful nature";
+
+    const fullText = data.candidates[0].content.parts[0].text;
+    console.log("Gemini Response:", fullText);
+
+    // 2. Simple Parsing (Looking for the PROMPT: keyword)
+    const parts = fullText.split("PROMPT:");
+    const quoteText = parts[0].trim();
+    const imagePrompt = parts[1] ? parts[1].trim() : "peaceful temple at sunrise";
 
     // 3. Update UI
     switchMode('nodate');
-    document.getElementById('n_title').value = title;
-    document.getElementById('n_main').value = quote;
-    document.getElementById('n_sub').value = subtext;
+    document.getElementById('n_title').value = "බුදු වදන";
+    document.getElementById('n_main').value = quoteText;
+    document.getElementById('n_sub').value = "— ශ්‍රී සද්ධර්මය —";
 
-    setStatus('Step 2: Generating Background Image...');
+    setStatus('Generating Image...');
 
-    // 4. Generate Image (Pollinations)
-    const encodedPrompt = encodeURIComponent(imagePrompt + ", peaceful, spiritual, cinematic lighting, no text");
-    const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1080&height=1080&nologo=true`;
+    // 4. Image Generation
+    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=1080&height=1080&nologo=true`;
 
-    // 5. Load to Canvas
     const img = new Image();
     img.crossOrigin = "Anonymous";
     img.onload = () => {
@@ -356,24 +351,17 @@ async function generateAiPost() {
       renderCanvas();
       btn.disabled = false;
       btn.textContent = '✨ Auto-Generate Post';
-      setStatus('✅ AI Post Generated Successfully!');
-      setTimeout(() => setStatus(''), 4000);
+      setStatus('✅ Success!');
     };
-    img.onerror = () => {
-      throw new Error("Failed to load image.");
-    };
-    
     img.src = imageUrl;
 
   } catch (error) {
-    console.error("Error:", error);
-    alert("Error: " + error.message);
+    console.error("DEBUG ERROR:", error);
+    alert("Critical Error: " + error.message);
     btn.disabled = false;
     btn.textContent = '✨ Auto-Generate Post';
-    setStatus('❌ Error occurred.');
   }
 }
-
 
 // ── DOWNLOAD ──
 function downloadPost(){
