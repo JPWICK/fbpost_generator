@@ -302,10 +302,10 @@ async function generateAiPost() {
 
   btn.disabled = true;
   btn.textContent = '⏳ Gemini is thinking...';
-  setStatus('Step 1: Writing text with stable v1 API...');
+  setStatus('Step 1: Writing text...');
 
   try {
-    // 1. Calling the STABLE v1 endpoint
+    // 1. Using the absolute simplest request structure for the v1 API
     const textUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     
     const textRes = await fetch(textUrl, {
@@ -316,14 +316,9 @@ async function generateAiPost() {
       body: JSON.stringify({
         contents: [{
           parts: [{
-            text: 'Write a short, beautiful Buddhist quote in Sinhala (max 4 lines). Also provide a short 2-word title, a subtext (e.g., source or blessing), and a short visual prompt in English describing a peaceful nature background (no text in image). Output ONLY a raw JSON object with these keys: {"title": "", "quote": "", "subtext": "", "imagePrompt": ""}'
+            text: 'Write a short, beautiful Buddhist quote in Sinhala (max 4 lines). Also provide a short 2-word title, a subtext (e.g., source or blessing), and a short visual prompt in English describing a peaceful nature background. Format your answer exactly like this: TITLE: [title] QUOTE: [quote] SUBTEXT: [subtext] PROMPT: [prompt]'
           }]
-        }],
-        generationConfig: {
-          // REMOVED responseMimeType to fix the "Unknown name" error
-          temperature: 0.7,
-          maxOutputTokens: 800
-        }
+        }]
       })
     });
 
@@ -333,29 +328,27 @@ async function generateAiPost() {
     }
     
     const textData = await textRes.json();
-    let contentString = textData.candidates[0].content.parts[0].text;
+    const resultText = textData.candidates[0].content.parts[0].text;
     
-    // Safety Net: Extract ONLY the JSON part (handles markdown blocks or extra text)
-    const jsonMatch = contentString.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("Gemini did not return valid JSON format.");
-    
-    const content = JSON.parse(jsonMatch[0]);
+    // 2. Parse the plain text response manually (No JSON required from the API)
+    const title = resultText.match(/TITLE:\s*(.*)/)?.[1] || "බුදු වදන";
+    const quote = resultText.match(/QUOTE:\s*([\s\S]*?)(?=SUBTEXT:|$)/)?.[1]?.trim() || "";
+    const subtext = resultText.match(/SUBTEXT:\s*(.*)/)?.[1] || "";
+    const imagePrompt = resultText.match(/PROMPT:\s*(.*)/)?.[1] || "peaceful nature";
 
-    // 2. UPDATE UI
+    // 3. Update UI
     switchMode('nodate');
-    document.getElementById('n_title').value = content.title || "";
-    document.getElementById('n_main').value = content.quote || "";
-    document.getElementById('n_sub').value = content.subtext || "";
+    document.getElementById('n_title').value = title;
+    document.getElementById('n_main').value = quote;
+    document.getElementById('n_sub').value = subtext;
 
     setStatus('Step 2: Generating Background Image...');
 
-    // 3. GENERATE IMAGE (Pollinations)
-    const encodedPrompt = encodeURIComponent((content.imagePrompt || "peaceful nature") + ", spiritual, cinematic lighting, no text");
+    // 4. Generate Image (Pollinations)
+    const encodedPrompt = encodeURIComponent(imagePrompt + ", peaceful, spiritual, cinematic lighting, no text");
     const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1080&height=1080&nologo=true`;
 
-    setStatus('Step 3: Loading to Canvas...');
-    
-    // 4. LOAD TO CANVAS
+    // 5. Load to Canvas
     const img = new Image();
     img.crossOrigin = "Anonymous";
     img.onload = () => {
@@ -367,18 +360,20 @@ async function generateAiPost() {
       setTimeout(() => setStatus(''), 4000);
     };
     img.onerror = () => {
-      throw new Error("Failed to load background image onto canvas.");
+      throw new Error("Failed to load image.");
     };
     
     img.src = imageUrl;
 
   } catch (error) {
-    console.error("Full Error Details:", error);
+    console.error("Error:", error);
     alert("Error: " + error.message);
     btn.disabled = false;
     btn.textContent = '✨ Auto-Generate Post';
     setStatus('❌ Error occurred.');
   }
+}
+
 }
 
     
