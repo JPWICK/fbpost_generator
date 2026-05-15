@@ -374,9 +374,6 @@ async function generateAiPost() {
   }
 }
 
-}
-
-    
 
 // ── DOWNLOAD ──
 function downloadPost(){
