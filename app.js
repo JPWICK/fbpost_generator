@@ -306,8 +306,8 @@ async function generateAiPost() {
 
   try {
     // 1. Updated to the exact model name from your list: gemini-3.1-flash-lite
-// This specific 'lite' model is currently the most reliable for accounts with $0 balance
-const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite-001:generateContent?key=${apiKey}`;
+  // Replace your URL with this one:
+const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`;
 
     
     const response = await fetch(url, {
