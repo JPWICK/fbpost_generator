@@ -305,7 +305,6 @@ async function generateAiPost() {
   setStatus('Connecting to Google...');
 
   try {
-    // 1. Using a very simple URL structure
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     
     const response = await fetch(url, {
@@ -314,24 +313,36 @@ async function generateAiPost() {
       body: JSON.stringify({
         contents: [{
           parts: [{ text: "Write a short Buddhist quote in Sinhala. Then on a new line write 'PROMPT:' followed by a simple English nature description for an image." }]
-        }]
+        }],
+        // SAFETY SETTINGS: This prevents the "Empty Response" bug
+        safetySettings: [
+          { "category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE" },
+          { "category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE" },
+          { "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE" },
+          { "category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE" }
+        ]
       })
     });
 
     const data = await response.json();
 
-    // CHECK: Did we get a response?
-    if (!data.candidates || !data.candidates[0]) {
-      throw new Error("Google returned an empty response. Check your API key status.");
+    // DEBUG: Log the full data to your console so you can see if it was blocked
+    console.log("Full API Data:", data);
+
+    if (data.promptFeedback && data.promptFeedback.blockReason) {
+      throw new Error("Blocked by Google Safety: " + data.promptFeedback.blockReason);
+    }
+
+    if (!data.candidates || data.candidates.length === 0) {
+      throw new Error("Empty response. Google might be filtering this content.");
     }
 
     const fullText = data.candidates[0].content.parts[0].text;
-    console.log("Gemini Response:", fullText);
 
-    // 2. Simple Parsing (Looking for the PROMPT: keyword)
+    // 2. Simple Parsing
     const parts = fullText.split("PROMPT:");
     const quoteText = parts[0].trim();
-    const imagePrompt = parts[1] ? parts[1].trim() : "peaceful temple at sunrise";
+    const imagePrompt = parts[1] ? parts[1].trim() : "peaceful nature background";
 
     // 3. Update UI
     switchMode('nodate');
@@ -341,7 +352,7 @@ async function generateAiPost() {
 
     setStatus('Generating Image...');
 
-    // 4. Image Generation
+    // 4. Image Generation (Pollinations)
     const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=1080&height=1080&nologo=true`;
 
     const img = new Image();
@@ -356,10 +367,11 @@ async function generateAiPost() {
     img.src = imageUrl;
 
   } catch (error) {
-    console.error("DEBUG ERROR:", error);
-    alert("Critical Error: " + error.message);
+    console.error("Detailed Error:", error);
+    alert("Error: " + error.message);
     btn.disabled = false;
     btn.textContent = '✨ Auto-Generate Post';
+    setStatus('❌ Failed.');
   }
 }
 
