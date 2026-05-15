@@ -305,8 +305,8 @@ async function generateAiPost() {
   setStatus('Step 1: Writing text with stable v1 API...');
 
   try {
-    // 1. HARDCODED TO STABLE 'v1' ENDPOINT
-    const textUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.2-flash:generateContent?key=${apiKey}`;
+    // 1. Calling the STABLE v1 endpoint
+    const textUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     
     const textRes = await fetch(textUrl, {
       method: 'POST',
@@ -316,38 +316,41 @@ async function generateAiPost() {
       body: JSON.stringify({
         contents: [{
           parts: [{
-            text: 'Write a short, beautiful Buddhist quote in Sinhala (max 4 lines). Also provide a short 2-word title, a subtext (e.g., source or blessing), and a short visual prompt in English describing a peaceful nature background (no text in image). Output ONLY in valid JSON format: {"title": "", "quote": "", "subtext": "", "imagePrompt": ""}'
+            text: 'Write a short, beautiful Buddhist quote in Sinhala (max 4 lines). Also provide a short 2-word title, a subtext (e.g., source or blessing), and a short visual prompt in English describing a peaceful nature background (no text in image). Output ONLY a raw JSON object with these keys: {"title": "", "quote": "", "subtext": "", "imagePrompt": ""}'
           }]
         }],
         generationConfig: {
-          responseMimeType: "application/json"
+          // REMOVED responseMimeType to fix the "Unknown name" error
+          temperature: 0.7,
+          maxOutputTokens: 800
         }
       })
     });
 
     if (!textRes.ok) {
       const err = await textRes.json();
-      throw new Error(err.error?.message || "Text API Key invalid or rejected by Google Gemini.");
+      throw new Error(err.error?.message || "API Error");
     }
     
     const textData = await textRes.json();
     let contentString = textData.candidates[0].content.parts[0].text;
     
-    // Safety Net: Strip out markdown formatting if Gemini included it by accident
-    contentString = contentString.replace(/```json/g, '').replace(/```/g, '').trim();
+    // Safety Net: Extract ONLY the JSON part (handles markdown blocks or extra text)
+    const jsonMatch = contentString.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error("Gemini did not return valid JSON format.");
     
-    const content = JSON.parse(contentString);
+    const content = JSON.parse(jsonMatch[0]);
 
     // 2. UPDATE UI
     switchMode('nodate');
-    document.getElementById('n_title').value = content.title;
-    document.getElementById('n_main').value = content.quote;
-    document.getElementById('n_sub').value = content.subtext;
+    document.getElementById('n_title').value = content.title || "";
+    document.getElementById('n_main').value = content.quote || "";
+    document.getElementById('n_sub').value = content.subtext || "";
 
     setStatus('Step 2: Generating Background Image...');
 
     // 3. GENERATE IMAGE (Pollinations)
-    const encodedPrompt = encodeURIComponent(content.imagePrompt + ", peaceful, spiritual, cinematic lighting, no text");
+    const encodedPrompt = encodeURIComponent((content.imagePrompt || "peaceful nature") + ", spiritual, cinematic lighting, no text");
     const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1080&height=1080&nologo=true`;
 
     setStatus('Step 3: Loading to Canvas...');
@@ -370,13 +373,15 @@ async function generateAiPost() {
     img.src = imageUrl;
 
   } catch (error) {
-    console.error(error);
+    console.error("Full Error Details:", error);
     alert("Error: " + error.message);
     btn.disabled = false;
     btn.textContent = '✨ Auto-Generate Post';
     setStatus('❌ Error occurred.');
   }
 }
+
+    
 
 // ── DOWNLOAD ──
 function downloadPost(){
