@@ -228,31 +228,40 @@ function downloadPost(){
 
 // This function creates an image WITHOUT using Gemini tokens
 function testOnlyImage() {
-  const btn = document.getElementById('aiBtn');
-  const testPrompt = "A serene Buddhist temple in the mist, golden hour, high resolution, wide angle";
+  const btn = document.getElementById('testImgBtn');
+  
+  // PRE-ENTERED PROMPT: No Gemini needed!
+  const fixedPrompt = "A serene Buddhist temple in a misty mountain forest at sunset, golden light hitting a stone pagoda, highly detailed cinematic photography, wide angle, peaceful atmosphere";
   
   btn.disabled = true;
-  btn.textContent = '🖼️ Generating Test Image...';
-  setStatus('Testing image generator only...');
+  btn.textContent = '⏳ Painting...';
+  setStatus('Testing Image Generator (No Key Needed)...');
 
-  // Cache buster and high-quality FLUX model
+  // Generate a random seed so the image is different every time you click
   const seed = Math.floor(Math.random() * 1000000);
-  const imageUrl = `https://pollinations.ai/p/${encodeURIComponent(testPrompt)}?width=1080&height=1080&seed=${seed}&model=flux&nologo=true`;
+  
+  // Stable 2026 Pollinations URL
+  const imageUrl = `https://pollinations.ai/p/${encodeURIComponent(fixedPrompt)}?width=1080&height=1080&seed=${seed}&model=flux&nologo=true`;
 
   const img = new Image();
-  img.crossOrigin = "anonymous";
+  img.crossOrigin = "anonymous"; 
+
   img.onload = () => {
     bgImage = img;
-    renderCanvas();
+    renderCanvas(); // This puts the image on your website background
     btn.disabled = false;
-    btn.textContent = '✨ Auto-Generate Post';
-    setStatus('✅ Test Image Loaded!');
+    btn.textContent = '🖼️ Try Background Generator (Free)';
+    setStatus('✅ Background Updated Successfully!');
   };
+
   img.onerror = () => {
-    setStatus('❌ Image Failed. Check Internet.');
+    setStatus('❌ Connection Error. Check internet.');
     btn.disabled = false;
+    btn.textContent = '🖼️ Try Background Generator (Free)';
   };
+
   img.src = imageUrl;
 }
+
 
 renderCanvas();
