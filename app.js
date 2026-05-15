@@ -290,72 +290,63 @@ function renderNodateMode(){
   }
 }
 
-// ── AI AUTOMATION (Client-Side) ──
+// ── AI AUTOMATION (Gemini Integration) ──
 async function generateAiPost() {
   const apiKey = document.getElementById('ai_apikey').value.trim();
   const btn = document.getElementById('aiBtn');
   
   if (!apiKey) {
-    alert("Please enter your OpenAI API key first!");
+    alert("Please enter your Gemini API key first!");
     return;
   }
 
   btn.disabled = true;
-  btn.textContent = '⏳ AI is thinking (takes ~15 sec)...';
-  setStatus('Step 1: Writing text...');
+  btn.textContent = '⏳ Gemini is thinking...';
+  setStatus('Step 1: Writing text with Gemini...');
 
   try {
-    // 1. Ask GPT for Text
-    const textRes = await fetch('https://api.openai.com/v1/chat/completions', {
+    // 1. Ask Gemini 1.5 Flash for Text and an Image Prompt
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    
+    const textRes = await fetch(geminiUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [{
-          role: 'user',
-          content: 'Write a short, beautiful Buddhist quote in Sinhala (max 4 lines). Also provide a short 2-word title, a subtext (e.g., source or blessing), and a short visual prompt in English describing a peaceful nature background (no text in image). Output ONLY in valid JSON format: {"title": "", "quote": "", "subtext": "", "imagePrompt": ""}'
-        }]
+        contents: [{
+          parts: [{
+            text: 'Write a short, beautiful Buddhist quote in Sinhala (max 4 lines). Also provide a short 2-word title, a subtext (e.g., source or blessing), and a short visual prompt in English describing a peaceful nature background (no text in image). Output ONLY in valid JSON format: {"title": "", "quote": "", "subtext": "", "imagePrompt": ""}'
+          }]
+        }],
+        generationConfig: {
+          responseMimeType: "application/json"
+        }
       })
     });
 
-    if (!textRes.ok) throw new Error("API Key invalid or rate limited by OpenAI.");
+    if (!textRes.ok) throw new Error("API Key invalid or rejected by Google Gemini.");
     
     const textData = await textRes.json();
-    const content = JSON.parse(textData.choices[0].message.content);
-
-    setStatus('Step 2: Generating Image...');
-
-    // 2. Ask DALL-E for Image
-    const imgRes = await fetch('https://api.openai.com/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'dall-e-3',
-        prompt: content.imagePrompt,
-        n: 1,
-        size: '1024x1024'
-      })
-    });
-
-    if (!imgRes.ok) throw new Error("Image generation failed. Check billing limits.");
     
-    const imgData = await imgRes.json();
-    const imageUrl = imgData.data[0].url;
+    const contentString = textData.candidates[0].content.parts[0].text;
+    const content = JSON.parse(contentString);
 
-    // 3. Update the UI
+    // 2. Update the UI with Gemini's Text
     switchMode('nodate');
     document.getElementById('n_title').value = content.title;
     document.getElementById('n_main').value = content.quote;
     document.getElementById('n_sub').value = content.subtext;
 
+    setStatus('Step 2: Generating AI Image...');
+
+    // 3. Generate the Image using a free, keyless AI image service based on Gemini's prompt
+    const encodedPrompt = encodeURIComponent(content.imagePrompt + ", peaceful, spiritual, cinematic lighting, no text");
+    const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1080&height=1080&nologo=true`;
+
     setStatus('Step 3: Downloading to Canvas...');
     
+    // 4. Load everything onto your Canvas
     const img = new Image();
     img.crossOrigin = "Anonymous"; // Required to allow canvas download
     img.onload = () => {
@@ -367,13 +358,14 @@ async function generateAiPost() {
       setTimeout(() => setStatus(''), 4000);
     };
     img.onerror = () => {
-      throw new Error("Failed to load DALL-E image due to browser security restrictions.");
+      throw new Error("Failed to load background image.");
     };
+    
     img.src = imageUrl;
 
   } catch (error) {
     console.error(error);
-    alert(error.message);
+    alert("Error: " + error.message);
     btn.disabled = false;
     btn.textContent = '✨ Auto-Generate Post';
     setStatus('❌ Error occurred.');
