@@ -307,7 +307,7 @@ async function generateAiPost() {
   try {
     // 1. Updated to the exact model name from your list: gemini-3.1-flash-lite
   // Replace your URL with this one:
-const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`;
+const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
     
     const response = await fetch(url, {
