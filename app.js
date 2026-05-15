@@ -227,27 +227,24 @@ function downloadPost(){
 }
 
 // This function creates an image WITHOUT using Gemini tokens
-// --- TEST FUNCTION: Call Gemini API directly for Image Generation ---
 async function testOnlyImage() {
   const btn = document.getElementById('testImgBtn');
-  
-  // 1. You MUST check for the API key, since we are using Gemini now
   const apiKey = document.getElementById('ai_apikey').value.trim();
+  
   if (!apiKey) {
-    alert("Please enter your Gemini API Key first to try this feature!");
-    btn.disabled = false;
+    alert("Please enter your Gemini API Key first!");
     return;
   }
 
   btn.disabled = true;
-  btn.textContent = '🖼️ Gemini is Painting...';
-  setStatus('Connecting to Gemini 3.1 Flash Image...');
+  btn.textContent = '🎨 Gemini is painting...';
+  setStatus('Using Gemini 2.5 Flash TTS (Multimodal)...');
 
   try {
-    // 2. Updated stable multimodal URL for 2026 (Flash Image / Nano Banana)
+    // 1. Correct URL for the 2.5 Flash TTS model
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-tts:generateContent?key=${apiKey}`;
 
-    const promptText = "A professional, high-end photograph for a Buddhist post. Subject: A single lit oil lamp (Pana) on a dark stone floor with soft golden morning light. Cinematic bokeh, sharp focus, lots of empty negative space on the left for text. 8k resolution.";
+    const promptText = "Generate a high-end, professional photography background for a Buddhist post. Subject: A serene stone stupa in a misty mountain forest at sunrise. Soft golden light, cinematic bokeh, sharp focus. Leave the left side empty for text.";
 
     const response = await fetch(url, {
       method: 'POST',
@@ -255,50 +252,41 @@ async function testOnlyImage() {
       body: JSON.stringify({
         contents: [{ parts: [{ text: promptText }] }],
         generationConfig: {
-          // KEY SETTING: This tells Gemini to send back an actual IMAGE, not text.
-          responseModalities: ["IMAGE"], 
-          quality: "hd" // Request high detail
+          // 2. This is the multimodal command to get an IMAGE back
+          responseModalities: ["IMAGE"] 
         }
       })
     });
 
     const data = await response.json();
-    console.log("Gemini Multimodal Response:", data);
 
-    if (!data.candidates || data.candidates.length === 0) {
-      throw new Error("No image generated. The prompt may have been blocked or key has no image quota.");
-    }
+    // 3. Extract the Image data (Gemini returns it as a Base64 string)
+    const imagePart = data.candidates[0].content.parts.find(p => p.inlineData);
+    if (!imagePart) throw new Error("No image data returned from Gemini.");
+    
+    const imageBase64 = imagePart.inlineData.data;
 
-    // 3. Handle the BASE64 image data Gemini sent back
-    const imageBase64 = data.candidates[0].content.parts[0].inlineData.data;
-
-    // 4. DRAW TO THE CANVAS
+    // 4. Draw the Gemini image to your Canvas
     const img = new Image();
-    img.crossOrigin = "anonymous"; 
-
     img.onload = () => {
       bgImage = img;
-      renderCanvas(); // Redraw your canvas with the real Gemini image
+      renderCanvas();
       btn.disabled = false;
-      btn.textContent = '🖼️ Try Background Generator (Gemini Key)';
+      btn.textContent = '🖼️ Try Background Generator';
       setStatus('✅ Real Gemini Image Loaded!');
     };
-
-    img.onerror = () => {
-      setStatus('❌ Image data received but could not be rendered.');
-      btn.disabled = false;
-    };
-
-    // Load the Gemini raw image data directly
+    
+    // We tell the browser this is a PNG image made from Gemini's text data
     img.src = `data:image/png;base64,${imageBase64}`;
 
   } catch (error) {
-    console.error("Critical Gemini Image Error:", error);
+    console.error(error);
     setStatus('❌ Gemini Error: ' + error.message);
     btn.disabled = false;
-    btn.textContent = '🖼️ Try Background Generator (Gemini Key)';
+    btn.textContent = '🖼️ Try Background Generator';
   }
 }
+
 
 
 
