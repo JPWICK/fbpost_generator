@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Buddhist Post Maker AI</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="mode-tabs">
+  <div class="mode-tab active" onclick="switchMode('date')" id="tab-date">📅 Date Post</div>
+  <div class="mode-tab" onclick="switchMode('nodate')" id="tab-nodate">🪷 Quote / Blessing Post</div>
+</div>
+
+<div class="main">
+  <div class="controls">
+    
+    <!-- AI Automation Section -->
+    <div class="control-group ai-section">
+      <div class="section-title">🤖 AI Automation (OpenAI)</div>
+      <input type="password" id="ai_apikey" placeholder="Paste your OpenAI API Key here..." class="ai-input">
+      <button class="btn btn-ai" id="aiBtn" onclick="generateAiPost()">
+        ✨ Auto-Generate Post
+      </button>
+    </div>
+    <div class="divider"></div>
+
+    <div class="control-group">
+      <div class="section-title">📷 Background Image</div>
+      <label class="upload-area">
+        <input type="file" id="bgUpload" accept="image/*">
+        <div id="uploadText">Click to upload background image</div>
+      </label>
+    </div>
+    <div class="divider"></div>
+
+    <!-- DATE MODE -->
+    <div class="mode-panel active" id="panel-date">
+      <div class="control-group">
+        <div class="section-title">⚡ Quick Templates</div>
+        <div class="template-grid">
+          <button class="template-btn" onclick="loadDateTemplate('morning')">🌅 Morning<br>උදෑසන</button>
+          <button class="template-btn" onclick="loadDateTemplate('quote')">📖 Dhamma</button>
+          <button class="template-btn" onclick="loadDateTemplate('evening')">🌸 Evening<br>සවස</button>
+          <button class="template-btn" onclick="loadDateTemplate('night')">🌙 Night<br>රාත්‍රී</button>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="control-group">
+        <div class="section-title">📅 Date Header</div>
+        <div class="row">
+          <div class="control-group"><label>Line 1</label><input type="text" id="d_line1" value="අද"></div>
+          <div class="control-group"><label>Line 2</label><input type="text" id="d_line2" value="මැයි මස"></div>
+        </div>
+        <div class="row">
+          <div class="control-group"><label>Number</label><input type="text" id="d_num" value="15"></div>
+          <div class="control-group"><label>Suffix</label><input type="text" id="d_suf" value="වෙනි"></div>
+        </div>
+        <label>Day Name</label>
+        <input type="text" id="d_dayname" value="සිකුරාදා">
+      </div>
+      <div class="divider"></div>
+      <div class="control-group">
+        <div class="section-title">✍️ Main Message</div>
+        <textarea id="d_main">ඔබේ අදහස් පිරිසිදු කරගන්න,
+වචන පිරිසිදු කරගන්න,
+ක්‍රියා පිරිසිදු කරගන්න,
+එවිට ජීවිතය ලස්සන වෙනු ඇත !</textarea>
+      </div>
+      <div class="control-group">
+        <div class="section-title">💬 Quote Box (optional)</div>
+        <textarea id="d_quote" style="min-height:50px" placeholder="Leave empty to hide"></textarea>
+      </div>
+      <div class="divider"></div>
+      <div class="control-group">
+        <div class="section-title">🎨 Colors</div>
+        <label>Number Color</label>
+        <div class="color-row"><input type="color" id="d_numcol" value="#8B0000"><input type="text" id="d_numcol_h" value="#8B0000" style="flex:1"></div>
+        <label>Badge Color</label>
+        <div class="color-row"><input type="color" id="d_badgecol" value="#1a5c3a"><input type="text" id="d_badgecol_h" value="#1a5c3a" style="flex:1"></div>
+        <label>Day Name Color</label>
+        <div class="color-row"><input type="color" id="d_daycol" value="#ffffff"><input type="text" id="d_daycol_h" value="#ffffff" style="flex:1"></div>
+        <label>Message Color</label>
+        <div class="color-row"><input type="color" id="d_textcol" value="#1a0f00"><input type="text" id="d_textcol_h" value="#1a0f00" style="flex:1"></div>
+      </div>
+      <div class="control-group">
+        <div class="section-title">📐 Size & Position</div>
+        <label>Font Scale</label>
+        <div class="range-row"><input type="range" id="d_scale" min="60" max="140" value="100"><span class="range-val" id="d_scale_v">100%</span></div>
+        <label>Top Margin</label>
+        <div class="range-row"><input type="range" id="d_top" min="2" max="40" value="8"><span class="range-val" id="d_top_v">8%</span></div>
+      </div>
+    </div>
+
+    <!-- NO-DATE MODE -->
+    <div class="mode-panel" id="panel-nodate">
+      <div class="control-group">
+        <div class="section-title">⚡ Quick Templates</div>
+        <div class="template-grid">
+          <button class="template-btn" onclick="loadNodateTemplate('dhamma')">📖 Dhamma</button>
+          <button class="template-btn" onclick="loadNodateTemplate('blessing')">🙏 Blessing</button>
+          <button class="template-btn" onclick="loadNodateTemplate('poya')">🌕 Poya</button>
+          <button class="template-btn" onclick="loadNodateTemplate('goodnight')">🌙 Goodnight</button>
+          <button class="template-btn" onclick="loadNodateTemplate('motivation')">💪 Motivation</button>
+          <button class="template-btn" onclick="loadNodateTemplate('triple')">🪷 Triple Gem</button>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="control-group">
+        <div class="section-title">✍️ Title (optional)</div>
+        <input type="text" id="n_title" placeholder="e.g. සුභ දවසක් වේවා!">
+      </div>
+      <div class="control-group">
+        <div class="section-title">💬 Main Quote / Message</div>
+        <textarea id="n_main" style="min-height:80px">හිත නිවැරදි නම්,
+ජීවිතයත් නිවැරදි වේ.</textarea>
+      </div>
+      <div class="control-group">
+        <div class="section-title">📝 Sub Text (optional)</div>
+        <textarea id="n_sub" style="min-height:45px" placeholder="— බුදු වදන —"></textarea>
+      </div>
+      <div class="control-group">
+        <div class="section-title">🔖 Bottom Tag (optional)</div>
+        <input type="text" id="n_tag" placeholder="🪷 සුභ දවසක් වේවා! 🪷">
+      </div>
+      <div class="divider"></div>
+      <div class="control-group">
+        <div class="section-title">🎨 Style</div>
+        <label>Quote Box Style</label>
+        <select id="n_boxstyle">
+          <option value="gold">Gold Parchment</option>
+          <option value="dark">Dark Temple</option>
+          <option value="green">Forest Green</option>
+          <option value="none">No Box</option>
+        </select>
+        <label>Title Color</label>
+        <div class="color-row"><input type="color" id="n_titlecol" value="#8B0000"><input type="text" id="n_titlecol_h" value="#8B0000" style="flex:1"></div>
+        <label>Main Text Color</label>
+        <div class="color-row"><input type="color" id="n_maincol" value="#1a0f00"><input type="text" id="n_maincol_h" value="#1a0f00" style="flex:1"></div>
+        <label>Sub Text Color</label>
+        <div class="color-row"><input type="color" id="n_subcol" value="#5a3800"><input type="text" id="n_subcol_h" value="#5a3800" style="flex:1"></div>
+        <label>Tag Line Color</label>
+        <div class="color-row"><input type="color" id="n_tagcol" value="#8b0000"><input type="text" id="n_tagcol_h" value="#8b0000" style="flex:1"></div>
+      </div>
+      <div class="control-group">
+        <div class="section-title">📐 Size & Position</div>
+        <label>Font Scale</label>
+        <div class="range-row"><input type="range" id="n_scale" min="60" max="150" value="100"><span class="range-val" id="n_scale_v">100%</span></div>
+        <label>Vertical Position</label>
+        <div class="range-row"><input type="range" id="n_vpos" min="10" max="80" value="42"><span class="range-val" id="n_vpos_v">42%</span></div>
+        <label>Lotus Dividers</label>
+        <select id="n_lotusshow"><option value="yes">Yes 🪷</option><option value="no">No</option></select>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <button class="btn btn-primary" onclick="renderCanvas()">🎨 Refresh Preview</button>
+  </div>
+
+  <!-- PREVIEW -->
+  <div class="preview-panel">
+    <div class="preview-label">Preview — 1080 × 1080</div>
+    <canvas id="canvas" width="1080" height="1080"></canvas>
+    <div id="status"></div>
+    <div class="download-row">
+      <button class="btn btn-primary" id="dlBtn" onclick="downloadPost()" style="flex:2">⬇️ Download PNG</button>
+      <button class="btn btn-secondary" onclick="renderCanvas()" style="flex:1">🔄 Refresh</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
