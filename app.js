@@ -226,4 +226,33 @@ function downloadPost(){
   },'image/png');
 }
 
+// This function creates an image WITHOUT using Gemini tokens
+function testOnlyImage() {
+  const btn = document.getElementById('aiBtn');
+  const testPrompt = "A serene Buddhist temple in the mist, golden hour, high resolution, wide angle";
+  
+  btn.disabled = true;
+  btn.textContent = '🖼️ Generating Test Image...';
+  setStatus('Testing image generator only...');
+
+  // Cache buster and high-quality FLUX model
+  const seed = Math.floor(Math.random() * 1000000);
+  const imageUrl = `https://pollinations.ai/p/${encodeURIComponent(testPrompt)}?width=1080&height=1080&seed=${seed}&model=flux&nologo=true`;
+
+  const img = new Image();
+  img.crossOrigin = "anonymous";
+  img.onload = () => {
+    bgImage = img;
+    renderCanvas();
+    btn.disabled = false;
+    btn.textContent = '✨ Auto-Generate Post';
+    setStatus('✅ Test Image Loaded!');
+  };
+  img.onerror = () => {
+    setStatus('❌ Image Failed. Check Internet.');
+    btn.disabled = false;
+  };
+  img.src = imageUrl;
+}
+
 renderCanvas();
