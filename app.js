@@ -245,7 +245,7 @@ async function testOnlyImage() {
 
   try {
     // 2. Updated stable multimodal URL for 2026 (Flash Image / Nano Banana)
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-tts:generateContent?key=${apiKey}`;
 
     const promptText = "A professional, high-end photograph for a Buddhist post. Subject: A single lit oil lamp (Pana) on a dark stone floor with soft golden morning light. Cinematic bokeh, sharp focus, lots of empty negative space on the left for text. 8k resolution.";
 
