@@ -301,20 +301,27 @@ async function generateAiPost() {
   }
 
   btn.disabled = true;
-  btn.textContent = '⏳ Thinking...';
-  setStatus('Connecting to Google...');
+  btn.textContent = '⏳ Gemini 3.1 is thinking...';
+  setStatus('Connecting to Google API v1beta...');
 
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    // 1. Updated to the exact model name from your list: gemini-3.1-flash-lite
+    // Using v1beta as it supports the 3.1 series best
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${apiKey}`;
     
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{
-          parts: [{ text: "Write a short Buddhist quote in Sinhala. Then on a new line write 'PROMPT:' followed by a simple English nature description for an image." }]
+          parts: [{ 
+            text: "Write a short Buddhist quote in Sinhala. Then on a new line write 'PROMPT:' followed by a simple English nature description for an image background." 
+          }]
         }],
-        // SAFETY SETTINGS: This prevents the "Empty Response" bug
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 500
+        },
         safetySettings: [
           { "category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE" },
           { "category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE" },
@@ -324,17 +331,16 @@ async function generateAiPost() {
       })
     });
 
-    const data = await response.json();
-
-    // DEBUG: Log the full data to your console so you can see if it was blocked
-    console.log("Full API Data:", data);
-
-    if (data.promptFeedback && data.promptFeedback.blockReason) {
-      throw new Error("Blocked by Google Safety: " + data.promptFeedback.blockReason);
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error?.message || "API Connection Failed");
     }
 
+    const data = await response.json();
+    console.log("Success! Gemini replied:", data);
+
     if (!data.candidates || data.candidates.length === 0) {
-      throw new Error("Empty response. Google might be filtering this content.");
+      throw new Error("Response was empty. Try a different prompt.");
     }
 
     const fullText = data.candidates[0].content.parts[0].text;
@@ -342,7 +348,7 @@ async function generateAiPost() {
     // 2. Simple Parsing
     const parts = fullText.split("PROMPT:");
     const quoteText = parts[0].trim();
-    const imagePrompt = parts[1] ? parts[1].trim() : "peaceful nature background";
+    const imagePrompt = parts[1] ? parts[1].trim() : "peaceful zen garden background";
 
     // 3. Update UI
     switchMode('nodate');
@@ -350,10 +356,11 @@ async function generateAiPost() {
     document.getElementById('n_main').value = quoteText;
     document.getElementById('n_sub').value = "— ශ්‍රී සද්ධර්මය —";
 
-    setStatus('Generating Image...');
+    setStatus('Generating AI Image...');
 
     // 4. Image Generation (Pollinations)
-    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=1080&height=1080&nologo=true`;
+    const encodedPrompt = encodeURIComponent(imagePrompt + ", cinematic, spiritual lighting, 4k");
+    const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1080&height=1080&nologo=true`;
 
     const img = new Image();
     img.crossOrigin = "Anonymous";
@@ -362,18 +369,21 @@ async function generateAiPost() {
       renderCanvas();
       btn.disabled = false;
       btn.textContent = '✨ Auto-Generate Post';
-      setStatus('✅ Success!');
+      setStatus('✅ Content Generated!');
     };
+    img.onerror = () => { setStatus('❌ Image Load Failed'); btn.disabled = false; };
+    
     img.src = imageUrl;
 
   } catch (error) {
-    console.error("Detailed Error:", error);
+    console.error("Critical Debug Info:", error);
     alert("Error: " + error.message);
     btn.disabled = false;
     btn.textContent = '✨ Auto-Generate Post';
-    setStatus('❌ Failed.');
+    setStatus('❌ Error occurred.');
   }
 }
+
 
 // ── DOWNLOAD ──
 function downloadPost(){
