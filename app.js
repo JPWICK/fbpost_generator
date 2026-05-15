@@ -230,38 +230,43 @@ function downloadPost(){
 function testOnlyImage() {
   const btn = document.getElementById('testImgBtn');
   
-  // PRE-ENTERED PROMPT: No Gemini needed!
-  const fixedPrompt = "A serene Buddhist temple in a misty mountain forest at sunset, golden light hitting a stone pagoda, highly detailed cinematic photography, wide angle, peaceful atmosphere";
+  // High-quality test prompt (Fixed)
+  const testPrompt = "Serene Buddhist temple in a misty mountain forest, soft golden sunlight, cinematic 8k photography, peaceful atmosphere";
   
   btn.disabled = true;
   btn.textContent = '⏳ Painting...';
-  setStatus('Testing Image Generator (No Key Needed)...');
+  setStatus('Connecting to Image Server...');
 
-  // Generate a random seed so the image is different every time you click
+  // Using a more stable 2026 free image endpoint
   const seed = Math.floor(Math.random() * 1000000);
   
-  // Stable 2026 Pollinations URL
-  const imageUrl = `https://pollinations.ai/p/${encodeURIComponent(fixedPrompt)}?width=1080&height=1080&seed=${seed}&model=flux&nologo=true`;
+  // FIX: Using the 'gen' subdomain or a stable fallback
+  const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(testPrompt)}?width=1080&height=1080&seed=${seed}&nologo=true`;
 
   const img = new Image();
   img.crossOrigin = "anonymous"; 
 
+  // This handles the connection check
   img.onload = () => {
     bgImage = img;
-    renderCanvas(); // This puts the image on your website background
+    renderCanvas();
     btn.disabled = false;
     btn.textContent = '🖼️ Try Background Generator (Free)';
-    setStatus('✅ Background Updated Successfully!');
+    setStatus('✅ Background Updated!');
   };
 
   img.onerror = () => {
-    setStatus('❌ Connection Error. Check internet.');
-    btn.disabled = false;
-    btn.textContent = '🖼️ Try Background Generator (Free)';
+    // If the first one fails, we try a secondary stable server
+    console.log("Primary server failed, trying backup...");
+    setStatus('Trying backup server...');
+    
+    // Backup: Unsplash Source (Reliable nature images)
+    img.src = `https://source.unsplash.com/featured/?buddhism,nature,temple&sig=${seed}`;
   };
 
   img.src = imageUrl;
 }
+
 
 
 renderCanvas();
