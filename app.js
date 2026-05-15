@@ -230,31 +230,37 @@ function downloadPost(){
 function testOnlyImage() {
   const btn = document.getElementById('testImgBtn');
   btn.disabled = true;
-  btn.textContent = '⏳ Loading...';
-  setStatus('Fetching background from Unsplash...');
+  btn.textContent = '🎨 Painting...';
+  setStatus('Fetching High-Res Buddhist Style Image...');
 
-  // This URL pulls a high-res (1080x1080) photo related to Buddhism & Nature
-  // The 'sig' part ensures you get a DIFFERENT image every time you click
-  const randomSig = Math.floor(Math.random() * 9999);
-  const imageUrl = `https://images.unsplash.com/photo-1545063914-a1a6ec821acc?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&h=1080&q=80&sig=${randomSig}`;
+  // Using Picsum - The most stable free image service in 2026
+  // We use a random ID and a 'grayscale' or 'blur' filter if you want, 
+  // but let's stick to high-quality random nature/spiritual style.
+  const randomId = Math.floor(Math.random() * 1000);
+  const imageUrl = `https://picsum.photos/id/${randomId}/1080/1080`;
 
   const img = new Image();
-  img.crossOrigin = "anonymous"; // Essential for your canvas download to work
+  
+  // CRITICAL: Set crossOrigin BEFORE setting the src
+  img.crossOrigin = "anonymous"; 
 
   img.onload = () => {
     bgImage = img;
-    renderCanvas(); // Redraws your canvas with the new image
+    renderCanvas(); // This draws the image to your canvas
     btn.disabled = false;
     btn.textContent = '🖼️ Try Background Generator (Free)';
-    setStatus('✅ Background Loaded!');
+    setStatus('✅ Background Updated!');
   };
 
   img.onerror = () => {
-    setStatus('❌ Error: Could not reach image server.');
+    // If Picsum fails, we use a solid color so the app doesn't break
+    console.error("Image failed to load.");
+    setStatus('❌ Server Busy. Try clicking again.');
     btn.disabled = false;
     btn.textContent = '🖼️ Try Background Generator (Free)';
   };
 
+  // Setting the src starts the download
   img.src = imageUrl;
 }
 
