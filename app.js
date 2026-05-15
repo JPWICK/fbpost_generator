@@ -190,7 +190,7 @@ async function generateAiPost() {
   setStatus('Gemini is creating a unique concept...');
 
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey}`;
 
     const promptText = `Generate a high-end Buddhist Facebook post concept.
     1. QUOTE: A powerful, short Buddhist quote in Sinhala.
